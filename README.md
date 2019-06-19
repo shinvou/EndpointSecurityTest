@@ -10,7 +10,8 @@ First of all, your binary needs to run as **root**. That's because `endpointsecu
 
 Second you'll need to add the `com.apple.developer.endpoint-security.client` entitlement to your binary or `endpointsecurityd` won't communicate with you.
 
-The last big point you need to do is to solve the functions that EndpointSecurity framework exposes. That's because you can't actually just link the framework yet since just `/usr/lib/libEndpointSecurity.dylib` exists. You can see how I did this [here](https://github.com/shinvou/EndpointSecurityTest/blob/0574edfd30cfa6fdf5e2686ba14fefa7aca7c19b/EndpointSecurityTest/main.m#L14-L58).
+~~The last big point you need to do is to solve the functions that EndpointSecurity framework exposes. That's because you can't actually just link the framework yet since just `/usr/lib/libEndpointSecurity.dylib` exists. You can see how I did this [here](https://github.com/shinvou/EndpointSecurityTest/blob/0574edfd30cfa6fdf5e2686ba14fefa7aca7c19b/EndpointSecurityTest/main.m#L14-L58).~~
+Actually I just found out that you can link against libEndpointSecurity.tbd in Xcode. I somehow failed to notice it's existence.
 
 ### Ok and how do I use it now?
 
