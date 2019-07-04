@@ -15,15 +15,15 @@ Actually I just found out that you can link against libEndpointSecurity.tbd in X
 
 **Update for beta 3:**
 In beta 3, TCC wants to join in. I manually edited `/Library/Application Support/com.apple.TCC/TCC.db` too add this entry:
-|service|client|client_type|allowed|prompt_count|csreq|policy_id|indirect_object_identifier_type|indirect_object_code_identity|flags|last_modified
-|--|--|--|--|--|--|--|--|--|--|--|
-|kTCCServiceSystemPolicyAllFiles|/path/to/your/binary|0|1|1|NULL|NULL|NULL|UNUSED|0|1562161810
+
+service | client | client_type | allowed | prompt_count | csreq | policy_id | indirect_object_identifier_type | indirect_object_code_identity | flags | last_modified
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+kTCCServiceSystemPolicyAllFiles | /path/to/your/binary | 0 | 1 | 1 | NULL | NULL | NULL | UNUSED | 0 | 1562161810
+
 You'll need to disable SIP to edit this database. Also reboot after editing the database since TCC has a cache somewhere that needs to be refreshed.
 Other notes: Deleting a client no longer triggers a kernel panic. It just works now.
 
-
 ### Ok and how do I use it now?
-
 - Create a client via es_new_client(). The block you pass will be your event handler later on, decide what to do with the event in there.
 - Clear the cache if you wish with es_clear_cache(). The cache remembers your decisions about e.g. file execution, whether you allow or disallow.
 - Now you can subscribe to the event you'd like with es_subscribe(). Remember to unsubscribe the event if you dynamically change the monitoring behavior.
