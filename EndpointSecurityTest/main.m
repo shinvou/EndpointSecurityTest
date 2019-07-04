@@ -15,17 +15,17 @@
 
 es_clear_cache_result_t (*_es_clear_cache)(es_client_t *client);
 es_new_client_result_t (*_es_new_client)(es_client_t * _Nullable *client, es_handler_block_t handler);
-bool (*_es_delete_client)(es_client_t *client);
-bool (*_es_subscribe)(es_client_t *client, uint32_t event_count, ...);
-bool (*_es_unsubscribe)(es_client_t *client, uint32_t event_count, ...);
-bool (*_es_unsubscribe_all)(es_client_t *client);
+es_return_t (*_es_delete_client)(es_client_t *client);
+es_return_t (*_es_subscribe)(es_client_t *client, es_event_type_t *events, uint32_t event_count);
+es_return_t (*_es_unsubscribe)(es_client_t *client, es_event_type_t *events, uint32_t event_count);
+es_return_t (*_es_unsubscribe_all)(es_client_t *client);
 size_t (*_es_message_size)(const es_message_t *msg);
 es_message_t *(*_es_copy_message)(const es_message_t *msg);
-es_token_t (*_es_exec_arg)(const es_event_exec_t *exec_event, uint32_t index);
-uint64_t (*_es_exec_arg_count)(const es_event_exec_t *exec_event);
-es_token_t (*_es_exec_env)(const es_event_exec_t *exec_event, uint32_t index);
-uint64_t (*_es_exec_env_count)(const es_event_exec_t *exec_event);
-bool (*_es_mute_process)(es_client_t *client, audit_token_t audit_token);
+es_string_token_t (*_es_exec_arg)(const es_event_exec_t *event, uint32_t index);
+uint64_t (*_es_exec_arg_count)(const es_event_exec_t *event);
+es_string_token_t (*_es_exec_env)(const es_event_exec_t *event, uint32_t index);
+uint64_t (*_es_exec_env_count)(const es_event_exec_t *event);
+es_return_t (*_es_mute_process)(es_client_t *client, audit_token_t audit_token);
 es_respond_result_t (*_es_respond_auth_result)(es_client_t * _Nonnull client, const es_message_t * _Nonnull message, es_auth_result_t result, bool cache);
 es_respond_result_t (*_es_respond_flags_result)(es_client_t *client, const es_message_t *message, uint32_t authorized_flags, bool cache);
 
@@ -87,9 +87,9 @@ int main(int argc, const char * argv[]) {
         es_handler_block_t message_handler = [^void (es_client_t *client, es_message_t *message) {
             NSLog(@"Received message from subscribed event! Client at %p", client);
             
-            NSLog(@"proc file path: %s", message->proc.file.path);
-            NSLog(@"proc team id: %s", message->proc.team_id);
-            NSLog(@"proc signing id: %s", message->proc.signing_id);
+            NSLog(@"proc file path: %s", message->proc.file.path.data);
+            NSLog(@"proc team id: %s", message->proc.team_id.data);
+            NSLog(@"proc signing id: %s", message->proc.signing_id.data);
             NSLog(@"proc ppid: %d", message->proc.ppid);
             NSLog(@"proc original ppid: %d", message->proc.original_ppid);
             NSLog(@"event type: %u", message->event_type);
@@ -101,10 +101,10 @@ int main(int argc, const char * argv[]) {
                 // It seems that for now all action types are auth or I somehow messed
                 // up accessing the action union and notifys result type
                 
-                if (!strcmp("/usr/libexec/xpcproxy", message->proc.file.path)) {
+                if (!strcmp("/usr/libexec/xpcproxy", message->proc.file.path.data)) {
                     es_event_exec_t exec = message->event.exec;
                     
-                    NSLog(@"xpcproxy is our trampoline, we really: %s", exec.proc.file.path);
+                    NSLog(@"xpcproxy is our trampoline, we really: %s", exec.proc.file.path.data);
                 }
                 
                 _es_respond_auth_result(client, message, ES_AUTH_RESULT_ALLOW, false);
@@ -117,6 +117,8 @@ int main(int argc, const char * argv[]) {
             NSLog(@"Successfully got new client at %p", client);
         } else {
             NSLog(@"Couldn't get new client ...");
+            if (client_result == ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED) { NSLog(@"Error: not permitted"); }
+            if (client_result == ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED) { NSLog(@"Error: not entitled"); }
             return 0;
         }
         
@@ -128,28 +130,33 @@ int main(int argc, const char * argv[]) {
             NSLog(@"Couldn't clear cache ...");
         }
         
-        bool subscribe_success = _es_subscribe(client, 1, ES_EVENT_TYPE_AUTH_EXEC);
+        es_event_type_t event = ES_EVENT_TYPE_AUTH_EXEC;
+        es_return_t subscribe_result = _es_subscribe(client, &event, 1);
         
-        if (subscribe_success) {
+        if (subscribe_result == ES_RETURN_SUCCESS) {
             NSLog(@"Client subscribed successfully");
         } else {
             NSLog(@"Client didn't subscribe ...");
         }
         
-        // Normally we should free the client after use
-        // but the kernel will panic if we do so in b2
-        /*
-        bool delete_success = _es_delete_client(client);
+        NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
+        [runLoop run];
         
-        if (delete_success) {
+        es_return_t unsubscribe_result = _es_unsubscribe_all(client);
+        
+        if (unsubscribe_result == ES_RETURN_SUCCESS) {
+            NSLog(@"Successfully unsubscribed all events");
+        } else {
+            NSLog(@"Couldn't unsubscribe ...");
+        }
+        
+        es_return_t delete_result = _es_delete_client(client);
+        
+        if (delete_result == ES_RETURN_SUCCESS) {
             NSLog(@"Successfully deleted client. Bye then.");
         } else {
             NSLog(@"Couldn't delete client. Oh oh ...");
         }
-        */
-        
-        NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
-        [runLoop run];
     }
     
     return 0;
