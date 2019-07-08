@@ -6,7 +6,7 @@
 *The EndpointSecurity framework* is an awesome new framework in macOS Catalina (10.15). It allows you to monitor (and allow or disallow) events like file executions, file open calls, memory mappings and much more. But from **userspace**! Previously you could only do this from kexts which run in **kernelspace**. Since there's little to no documentation about the new framework from AAPL I decided to write a quick explanation, so you don't have waste time getting it to work. I hope some more official information will be available when macOS 10.15 will be released this fall. :P
 
 ### What do I need to do to use the framework?
-First of all, your binary needs to run as **root**. That's because `endpointsecurityd` otherwise will fail to connect to the EndpointSecurityDriver IOService. Also, don't run your binary within Xcode. 
+First of all, your binary needs to run as **root**. That's because `libEndpointSecurity.dylib` otherwise will fail to connect to the EndpointSecurityDriver IOService. Also, don't run your binary within Xcode. 
 
 Second you'll need to add the `com.apple.developer.endpoint-security.client` entitlement to your binary or `endpointsecurityd` won't communicate with you.
 
